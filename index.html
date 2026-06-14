@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>POSChat Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0F172A; --blue:#2563EB; --blue2:#1D4ED8;
+  --cyan:#06B6D4; --gray:#94A3B8; --light:#F1F5F9;
+  --white:#fff; --green:#10B981; --red:#EF4444;
+  --card:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.09);
+}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--navy);color:var(--white)}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:260px;flex-shrink:0;
+  background:rgba(0,0,0,0.3);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:0;
+}
+.sidebar-header{
+  padding:20px 18px 16px;
+  border-bottom:1px solid var(--border);
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;font-weight:800;
+}
+.logo-text{font-size:1.1rem;font-weight:700}
+.logo-sub{font-size:.7rem;color:var(--gray);margin-top:1px}
+
+.sidebar-section{padding:14px 12px 8px;font-size:.67rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray)}
+
+.new-chat-btn{
+  margin:0 12px 8px;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  border:none;color:var(--white);
+  padding:10px 14px;border-radius:10px;
+  font-size:.85rem;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+  transition:opacity .2s;width:calc(100% - 24px);
+}
+.new-chat-btn:hover{opacity:.85}
+
+.history{flex:1;overflow-y:auto;padding:4px 12px}
+.history-item{
+  padding:9px 12px;border-radius:8px;
+  font-size:.82rem;color:var(--gray);
+  cursor:pointer;transition:background .2s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-bottom:2px;
+}
+.history-item:hover,.history-item.active{background:rgba(255,255,255,.07);color:var(--white)}
+
+.sidebar-footer{
+  padding:14px 16px;
+  border-top:1px solid var(--border);
+  font-size:.75rem;color:var(--gray);
+}
+.status-dot{
+  display:inline-block;width:7px;height:7px;
+  border-radius:50%;background:var(--green);
+  margin-right:6px;animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+.topbar{
+  padding:14px 24px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,0,0,.2);
+  flex-shrink:0;
+}
+.topbar-title{font-size:.95rem;font-weight:600}
+.topbar-sub{font-size:.75rem;color:var(--gray);margin-top:2px}
+.model-badge{
+  background:rgba(37,99,235,.2);
+  border:1px solid rgba(37,99,235,.4);
+  color:#93C5FD;font-size:.72rem;font-weight:600;
+  padding:4px 12px;border-radius:20px;
+}
+
+/* MESSAGES */
+.messages{
+  flex:1;overflow-y:auto;
+  padding:24px;
+  display:flex;flex-direction:column;gap:16px;
+  scroll-behavior:smooth;
+}
+
+.msg{display:flex;gap:12px;max-width:820px}
+.msg.user{flex-direction:row-reverse;align-self:flex-end}
+.msg.assistant{align-self:flex-start}
+
+.msg-avatar{
+  width:34px;height:34px;border-radius:50%;
+  flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:.85rem;
+}
+.msg.assistant .msg-avatar{background:linear-gradient(135deg,var(--blue),var(--cyan))}
+.msg.user .msg-avatar{background:rgba(255,255,255,.1)}
+
+.msg-bubble{
+  padding:12px 16px;border-radius:14px;
+  font-size:.88rem;line-height:1.65;max-width:640px;
+}
+.msg.assistant .msg-bubble{
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--border);
+  border-top-left-radius:4px;
+}
+.msg.user .msg-bubble{
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  border-top-right-radius:4px;
+}
+
+.msg-tools{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;
+}
+.tool-chip{
+  background:rgba(6,182,212,.12);
+  border:1px solid rgba(6,182,212,.25);
+  color:#67E8F9;font-size:.7rem;font-weight:600;
+  padding:2px 9px;border-radius:10px;
+}
+
+/* WELCOME */
+.welcome{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:32px;
+}
+.welcome-icon{
+  width:72px;height:72px;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2rem;margin-bottom:20px;
+}
+.welcome h2{font-size:1.5rem;font-weight:700;margin-bottom:8px}
+.welcome p{font-size:.9rem;color:var(--gray);max-width:400px;line-height:1.65;margin-bottom:28px}
+
+.suggestions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:560px}
+.sug-btn{
+  background:var(--card);border:1px solid var(--border);
+  color:var(--gray);padding:9px 16px;border-radius:20px;
+  font-size:.8rem;cursor:pointer;transition:all .2s;
+  font-family:'Inter',sans-serif;
+}
+.sug-btn:hover{background:rgba(37,99,235,.2);border-color:rgba(37,99,235,.4);color:var(--white)}
+
+/* TYPING INDICATOR */
+.typing{display:flex;gap:5px;align-items:center;padding:4px 0}
+.typing span{
+  width:7px;height:7px;background:var(--gray);border-radius:50%;
+  animation:bounce .8s infinite;
+}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+
+/* INPUT AREA */
+.input-area{
+  padding:16px 24px 20px;
+  border-top:1px solid var(--border);
+  background:rgba(0,0,0,.15);
+  flex-shrink:0;
+}
+.input-box{
+  display:flex;align-items:flex-end;gap:10px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--border);
+  border-radius:14px;padding:10px 14px;
+  transition:border-color .2s;
+}
+.input-box:focus-within{border-color:rgba(37,99,235,.5)}
+#userInput{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--white);font-size:.9rem;font-family:'Inter',sans-serif;
+  resize:none;max-height:120px;line-height:1.5;
+  placeholder-color:var(--gray);
+}
+#userInput::placeholder{color:var(--gray)}
+.send-btn{
+  width:38px;height:38px;border-radius:9px;border:none;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  color:var(--white);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:opacity .2s;
+}
+.send-btn:hover{opacity:.85}
+.send-btn:disabled{opacity:.4;cursor:default}
+.send-btn svg{width:16px;height:16px;fill:currentColor}
+.input-hint{font-size:.72rem;color:var(--gray);margin-top:8px;text-align:center}
+
+/* MOBILE */
+.menu-btn{display:none;background:none;border:none;color:var(--white);cursor:pointer;padding:4px;font-size:1.3rem}
+@media(max-width:680px){
+  .sidebar{
+    position:fixed;inset:0 auto 0 0;z-index:50;
+    transform:translateX(-100%);transition:transform .3s;
+    width:80%;max-width:280px;
+  }
+  .sidebar.open{transform:translateX(0)}
+  .menu-btn{display:flex}
+  .main{width:100%}
+  .messages{padding:16px}
+  .input-area{padding:12px 16px 16px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">P</div>
+        <div>
+          <div class="logo-text">POSChat</div>
+          <div class="logo-sub">Agente Inteligente</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px">
+      <button class="new-chat-btn" onclick="newChat()">
+        <span>✏️</span> Nueva conversación
+      </button>
+    </div>
+    <div class="sidebar-section">Historial</div>
+    <div class="history" id="historyList"></div>
+    <div class="sidebar-footer">
+      <span class="status-dot"></span>Backend activo · Gemini 1.5 Flash
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div>
+          <div class="topbar-title">Asistente POSChat</div>
+          <div class="topbar-sub">Conectado a Base44 · inventario, pedidos y clientes</div>
+        </div>
+      </div>
+      <div class="model-badge">Gemini 1.5 Flash</div>
+    </div>
+
+    <div id="chatArea" class="messages">
+      <!-- Welcome screen -->
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">🤖</div>
+        <h2>¿En qué te ayudo hoy?</h2>
+        <p>Puedo consultar inventario, registrar pedidos, agregar clientes y darte reportes de ventas en tiempo real.</p>
+        <div class="suggestions">
+          <button class="sug-btn" onclick="sendSuggestion('¿Cuántos productos hay en el inventario?')">📦 Ver inventario</button>
+          <button class="sug-btn" onclick="sendSuggestion('Muéstrame los pedidos pendientes')">🧾 Pedidos pendientes</button>
+          <button class="sug-btn" onclick="sendSuggestion('¿Cuánto vendí hoy?')">💰 Ventas de hoy</button>
+          <button class="sug-btn" onclick="sendSuggestion('Lista todos los clientes con deuda')">👥 Clientes con deuda</button>
+          <button class="sug-btn" onclick="sendSuggestion('Agrega un nuevo cliente llamado Pedro Martínez, teléfono 809-555-1234')">➕ Nuevo cliente</button>
+          <button class="sug-btn" onclick="sendSuggestion('Registra un pedido de 2 Arroz Cristal 5lb para María López, total RD$240')">🛒 Registrar pedido</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-box">
+        <textarea id="userInput" rows="1" placeholder="Escribe tu mensaje... (Enter para enviar, Shift+Enter para nueva línea)" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+      <div class="input-hint">Powered by Gemini · Base44 Backend · Sin consumo de créditos del agente</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const BACKEND_URL = "https://api.base44.com/api/apps/69dbad34b7190bc2a2faee7c/functions/geminiChat";
+
+// ── STATE ──
+let messages = [];
+let sessions = JSON.parse(localStorage.getItem("poschat_sessions") || "[]");
+let currentSessionId = null;
+let isLoading = false;
+
+// ── INIT ──
+renderHistory();
+
+// ── UI HELPERS ──
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+}
+
+function autoResize(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}
+
+function handleKey(e) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendSuggestion(text) {
+  document.getElementById("userInput").value = text;
+  sendMessage();
+}
+
+function scrollBottom() {
+  const area = document.getElementById("chatArea");
+  setTimeout(() => area.scrollTop = area.scrollHeight, 50);
+}
+
+// ── HISTORY ──
+function renderHistory() {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  [...sessions].reverse().forEach(s => {
+    const d = document.createElement("div");
+    d.className = "history-item" + (s.id === currentSessionId ? " active" : "");
+    d.textContent = s.title || "Conversación";
+    d.onclick = () => loadSession(s.id);
+    list.appendChild(d);
+  });
+}
+
+function saveSession() {
+  if (!currentSessionId) return;
+  const idx = sessions.findIndex(s => s.id === currentSessionId);
+  const title = messages[0]?.content?.slice(0, 42) || "Conversación";
+  if (idx >= 0) {
+    sessions[idx] = { id: currentSessionId, title, messages };
+  } else {
+    sessions.push({ id: currentSessionId, title, messages });
+  }
+  localStorage.setItem("poschat_sessions", JSON.stringify(sessions));
+  renderHistory();
+}
+
+function loadSession(id) {
+  const s = sessions.find(x => x.id === id);
+  if (!s) return;
+  currentSessionId = id;
+  messages = [...s.messages];
+  rebuildChat();
+  renderHistory();
+  if (window.innerWidth <= 680) document.getElementById("sidebar").classList.remove("open");
+}
+
+function newChat() {
+  currentSessionId = "sess_" + Date.now();
+  messages = [];
+  rebuildChat();
+  renderHistory();
+  if (window.innerWidth <= 680) document.getElementById("sidebar").classList.remove("open");
+}
+
+// ── RENDER MESSAGES ──
+function rebuildChat() {
+  const area = document.getElementById("chatArea");
+  area.innerHTML = "";
+  if (messages.length === 0) {
+    area.innerHTML = `<div class="welcome" id="welcome">
+      <div class="welcome-icon">🤖</div>
+      <h2>¿En qué te ayudo hoy?</h2>
+      <p>Puedo consultar inventario, registrar pedidos, agregar clientes y darte reportes de ventas en tiempo real.</p>
+      <div class="suggestions">
+        <button class="sug-btn" onclick="sendSuggestion('¿Cuántos productos hay en el inventario?')">📦 Ver inventario</button>
+        <button class="sug-btn" onclick="sendSuggestion('Muéstrame los pedidos pendientes')">🧾 Pedidos pendientes</button>
+        <button class="sug-btn" onclick="sendSuggestion('¿Cuánto vendí hoy?')">💰 Ventas de hoy</button>
+        <button class="sug-btn" onclick="sendSuggestion('Lista todos los clientes con deuda')">👥 Clientes con deuda</button>
+      </div>
+    </div>`;
+    return;
+  }
+  messages.forEach(m => appendMessage(m.role, m.content, m.toolsUsed));
+  scrollBottom();
+}
+
+function appendMessage(role, content, toolsUsed = []) {
+  const welcome = document.getElementById("welcome");
+  if (welcome) welcome.remove();
+
+  const area = document.getElementById("chatArea");
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+
+  const avatar = role === "assistant" ? "🤖" : "👤";
+  const toolsHtml = toolsUsed?.length
+    ? `<div class="msg-tools">${toolsUsed.map(t => `<span class="tool-chip">⚡ ${t}</span>`).join("")}</div>`
+    : "";
+
+  div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div>
+      <div class="msg-bubble">${escHtml(content)}</div>
+      ${toolsHtml}
+    </div>`;
+  area.appendChild(div);
+  scrollBottom();
+}
+
+function addTyping() {
+  const area = document.getElementById("chatArea");
+  const div = document.createElement("div");
+  div.className = "msg assistant";
+  div.id = "typing-indicator";
+  div.innerHTML = `
+    <div class="msg-avatar">🤖</div>
+    <div class="msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(div);
+  scrollBottom();
+}
+
+function removeTyping() {
+  document.getElementById("typing-indicator")?.remove();
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br/>");
+}
+
+// ── SEND ──
+async function sendMessage() {
+  const input = document.getElementById("userInput");
+  const text = input.value.trim();
+  if (!text || isLoading) return;
+
+  if (!currentSessionId) currentSessionId = "sess_" + Date.now();
+  isLoading = true;
+  input.value = "";
+  input.style.height = "auto";
+  document.getElementById("sendBtn").disabled = true;
+
+  messages.push({ role: "user", content: text });
+  appendMessage("user", text);
+  addTyping();
+
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: messages.map(m => ({ role: m.role, content: m.content })), userId: "github-user" })
+    });
+
+    const data = await res.json();
+    removeTyping();
+
+    if (data.response) {
+      messages.push({ role: "assistant", content: data.response, toolsUsed: data.toolsUsed });
+      appendMessage("assistant", data.response, data.toolsUsed);
+    } else {
+      messages.push({ role: "assistant", content: "❌ Error: " + (data.error || "Respuesta vacía") });
+      appendMessage("assistant", "❌ Error: " + (data.error || "Respuesta vacía"));
+    }
+  } catch (err) {
+    removeTyping();
+    messages.push({ role: "assistant", content: "❌ No pude conectar con el backend. Verifica la URL." });
+    appendMessage("assistant", "❌ No pude conectar con el backend. Verifica la URL.");
+  }
+
+  saveSession();
+  isLoading = false;
+  document.getElementById("sendBtn").disabled = false;
+  input.focus();
+}
+</script>
+</body>
+</html>
